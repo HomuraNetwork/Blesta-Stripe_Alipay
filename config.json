@@ -1,0 +1,13 @@
+{
+    "version": "1.0.0",
+    "name": "StripeAlipay.name",
+    "description": "StripeAlipay.description",
+    "authors": [
+        {
+            "name": "Homura Network Limited",
+            "url": "https://homura.network"
+        }
+    ],
+    "currencies": ["CNY", "AUD", "CAD", "EUR", "GBP", "HKD", "JPY", "SGD", "MYR", "NZD", "USD"],
+    "signup_url": "https://docs.stripe.com/payments/alipay"
+}

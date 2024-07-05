@@ -1,0 +1,75 @@
+
+	<ul>
+		<li>
+			<?php
+            $this->Form->label($this->_('StripeAlipay.secret_key', true));
+            $this->Form->fieldText('secret_key', (isset($meta['secret_key']) ? $meta['secret_key'] : null));
+            ?>
+			<span class="tooltip"><?php $this->_('AppController.tooltip.text');?><div><?php $this->_('StripeAlipay.tooltip_secret_key');?></div></span>
+            <?php
+                if (isset($meta['secret_key']) && substr($meta['secret_key'], 0, 7) == 'sk_test') {
+                    echo "<strong>" . $this->_('StripeAlipay.test_key_detected', true) . "</strong>";
+                }
+            ?>
+		</li>
+        <li>
+		<?php
+            $this->Form->label($this->_('StripeAlipay.webhook_secret', true));
+            $this->Form->fieldText('webhook_secret', (isset($meta['webhook_secret']) ? $meta['webhook_secret'] : null));
+            ?>
+			<span class="tooltip"><?php $this->_('AppController.tooltip.text');?><div><?php $this->_('StripeAlipay.tooltip_webhook_secret');?></div></span>
+		</li>
+        <li>
+        <?php
+            $this->Form->label($this->_('StripeAlipay.currency', true));
+            $this->Form->fieldText('currency', (isset($meta['currency']) ? $meta['currency'] : null));
+            ?>
+			<span class="tooltip"><?php $this->_('AppController.tooltip.text');?><div><?php $this->_('StripeAlipay.tooltip_currency');?></div></span>
+		</li>
+        <li>
+        <?php
+            $this->Form->label($this->_('StripeAlipay.fee_fix', true));
+            $this->Form->fieldText('fee_fix', (isset($meta['fee_fix']) ? $meta['fee_fix'] : null));
+            ?>
+			<span class="tooltip"><?php $this->_('AppController.tooltip.text');?><div><?php $this->_('StripeAlipay.tooltip_fee_fix');?></div></span>
+		</li>
+        <li>
+        <?php
+         // TODO: Find a way to ensure that the percentage fee does not cause a discrepancy between payment and receipt amounts.
+            $this->Form->label($this->_('StripeAlipay.fee_percentage', true));
+            $this->Form->fieldText('fee_percent', (isset($meta['fee_percentage']) ? $meta['fee_percentage'] : null), ['disabled' => 'true;']);
+            ?>
+			<span class="tooltip"><?php $this->_('AppController.tooltip.text');?><div><?php $this->_('StripeAlipay.tooltip_fee_percentage');?></div></span>
+		</li>
+        <li>
+        <?php
+
+            $this->Form->label($this->_('StripeAlipay.fee_choice', true));
+            $this->Form->fieldRadio('fee_choice', 'payment_fee', ((isset($meta['fee_choice']) ? $meta['fee_choice'] : 'payment_fee') == 'payment_fee'), ['id' => 'payment_fee']);
+            $this->Form->label($this->_('StripeAlipay.payment_fee', true), 'payment_fee', ['class' => 'inline']);
+            $this->Form->fieldRadio('fee_choice', 'refund_fee', ((isset($meta['fee_choice']) ? $meta['fee_choice'] : 'refund_fee') == 'refund_fee'), ['id' => 'refund_fee']);
+            $this->Form->label($this->_('StripeAlipay.refund_fee', true), 'refund_fee', ['class' => 'inline']);
+            $this->Form->fieldRadio('fee_choice', 'no_fee', ((isset($meta['fee_choice']) ? $meta['fee_choice'] : 'no_fee') == 'no_fee'), ['id' => 'no_fee']);
+            $this->Form->label($this->_('StripeAlipay.no_fee', true), 'no_fee', ['class' => 'inline']);
+
+
+            ?>
+			<span class="tooltip"><?php $this->_('AppController.tooltip.text');?><div><?php $this->_('StripeAlipay.tooltip_webhook_secret');?></div></span>
+		</li>
+        <li>
+        <?php
+         
+            $this->Form->fieldCheckbox('test_on_save', (isset($meta['test_on_save']) ? $meta['test_on_save'] : true));
+            $this->Form->label($this->_('StripeAlipay.test_on_save', true));
+            ?>
+		</li>
+	</ul>
+
+    <div class="title_row">
+        <h3><?php $this->_('StripeAlipay.webhook'); ?></h3>
+    </div>
+    <div class="pad">
+        <p><?php $this->_('StripeAlipay.webhook_note'); ?></p>
+        <code><?php echo Configure::get('Blesta.gw_callback_url') . Configure::get('Blesta.company_id') . '/stripe_alipay/'; ?></code>
+
+    </div>

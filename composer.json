@@ -1,0 +1,16 @@
+{
+    "name": "homuranetwork/stripe_alipay",
+    "description": "Stripe Alipay Payment Gateway for Blesta",
+    "license": "MIT",
+    "type": "blesta-gateway-nonmerchant",
+    "require": {
+        "blesta/composer-installer": "~1.0",
+        "stripe/stripe-php": "~15.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "blesta/composer-installer": true
+        }
+    }
+}
