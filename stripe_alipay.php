@@ -140,7 +140,7 @@ class StripeAlipay extends NonmerchantGateway
                 'amount' => $amount_details["stripe_amount"],
                 'currency' => $this->currency,
                 'receipt_email' => $contact->email,
-                'description' => "Homura Network - Invoice Payment",
+                'description' => Configure::get('Blesta.company')->name . " - Invoice Payment",
                 'payment_method_data' => [
                     'type' => 'alipay',
                 ],
