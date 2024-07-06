@@ -105,56 +105,15 @@ class StripeAlipay extends NonmerchantGateway
     public function setMeta(array $meta = null)
     {
         $this->meta = $meta;
-        // TODO: Find a way to ensure that the percentage fee does not cause a discrepancy between payment and receipt amounts.
-        $this->meta['fee_percent'] = 0;
     }
 
     /**
-     * Returns all HTML markup required to render an authorization and capture payment form
-     *
-     * @param array $contact_info An array of contact info including:
-     *  - id The contact ID
-     *  - client_id The ID of the client this contact belongs to
-     *  - user_id The user ID this contact belongs to (if any)
-     *  - contact_type The type of contact
-     *  - contact_type_id The ID of the contact type
-     *  - first_name The first name on the contact
-     *  - last_name The last name on the contact
-     *  - title The title of the contact
-     *  - company The company name of the contact
-     *  - address1 The address 1 line of the contact
-     *  - address2 The address 2 line of the contact
-     *  - city The city of the contact
-     *  - state An array of state info including:
-     *      - code The 2 or 3-character state code
-     *      - name The local name of the country
-     *  - country An array of country info including:
-     *      - alpha2 The 2-character country code
-     *      - alpha3 The 3-cahracter country code
-     *      - name The english name of the country
-     *      - alt_name The local name of the country
-     *  - zip The zip/postal code of the contact
-     * @param float $amount The amount to charge this contact
-     * @param array $invoice_amounts An array of invoices, each containing:
-     *  - id The ID of the invoice being processed
-     *  - amount The amount being processed for this invoice (which is included in $amount)
-     * @param array $options An array of options including:
-     *  - description The Description of the charge
-     *  - return_url The URL to redirect users to after a successful payment
-     *  - recur An array of recurring info including:
-     *      - amount The amount to recur
-     *      - term The term to recur
-     *      - period The recurring period (day, week, month, year, onetime) used in conjunction
-     *          with term in order to determine the next recurring payment
-     * @return string HTML markup required to render an authorization and capture payment form
+     * {@inheritdoc}
      */
     public function buildProcess($contact_info, $amount, $invoice_amounts = null, $options = null)
     {
 
-        if ($this->meta['fee_choice'] == 'payment_fee' && ($this->meta['fee_fix'] || $this->meta['fee_percent'])) {
-            $amount = $this->calculateAmount($amount, $this->meta['fee_fix'], $this->meta['fee_percent'], true);
-        }
-        $amount = $this->formatAmount($amount, $this->currency, $direction = 'to');
+        $amount_details = $this->calculateAmount($amount, $this->currency, $situ = 'payment');
 
         if (isset($invoice_amounts) && is_array($invoice_amounts)) {
             $invoices = $this->serializeInvoices($invoice_amounts);
@@ -178,7 +137,7 @@ class StripeAlipay extends NonmerchantGateway
         try {
             $paymentIntentObj = [
                 'payment_method_types' => ['alipay'],
-                'amount' => $amount,
+                'amount' => $amount_details["stripe_amount"],
                 'currency' => $this->currency,
                 'receipt_email' => $contact->email,
                 'description' => "Homura Network - Invoice Payment",
@@ -190,6 +149,9 @@ class StripeAlipay extends NonmerchantGateway
                 'metadata' => [
                     'client_id' => $contact_info['client_id'],
                     'invoices' => $invoices,
+                    'fee' => $amount_details["fee"],
+                    'acture_amount' => $amount_details["acture_amount"],
+                    'fee_choice' => $this->meta['fee_choice'],
                 ],
             ];
 
@@ -205,23 +167,7 @@ class StripeAlipay extends NonmerchantGateway
     }
 
     /**
-     * Validates the incoming POST/GET response from the gateway to ensure it is
-     * legitimate and can be trusted.
-     *
-     * @param array $get The GET data for this request
-     * @param array $post The POST data for this request
-     * @return array An array of transaction data, sets any errors using Input if the data fails to validate
-     *  - client_id The ID of the client that attempted the payment
-     *  - amount The amount of the payment
-     *  - currency The currency of the payment
-     *  - invoices An array of invoices and the amount the payment should be applied to (if any) including:
-     *      - id The ID of the invoice to apply to
-     *      - amount The amount to apply to the invoice
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the gateway to identify this transaction
-     *  - parent_transaction_id The ID returned by the gateway to identify this
-     *      transaction's original transaction (in the case of refunds)
+     * {@inheritdoc}
      */
     public function validate(array $get, array $post)
     {
@@ -274,21 +220,7 @@ class StripeAlipay extends NonmerchantGateway
     }
 
     /**
-     * Returns data regarding a success transaction. This method is invoked when
-     * a client returns from the non-merchant gateway's web site back to Blesta.
-     *
-     * @param array $get The GET data for this request
-     * @param array $post The POST data for this request
-     * @return array An array of transaction data, may set errors using Input if the data appears invalid
-     *  - client_id The ID of the client that attempted the payment
-     *  - amount The amount of the payment
-     *  - currency The currency of the payment
-     *  - invoices An array of invoices and the amount the payment should be applied to (if any) including:
-     *      - id The ID of the invoice to apply to
-     *      - amount The amount to apply to the invoice
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - transaction_id The ID returned by the gateway to identify this transaction
-     *  - parent_transaction_id The ID returned by the gateway to identify this transaction's original transaction
+     * {@inheritdoc}
      */
 
     public function success(array $get, array $post)
@@ -326,18 +258,7 @@ class StripeAlipay extends NonmerchantGateway
     }
 
     /**
-     * Captures a previously authorized payment.
-     *
-     * @param string $reference_id The reference ID for the previously authorized transaction
-     * @param string $transaction_id The transaction ID for the previously authorized transaction.
-     * @param $amount The amount.
-     * @param array $invoice_amounts
-     * @return array An array of transaction data including:
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard
-     *      message for this transaction status (optional)
+     * {@inheritdoc}
      */
     public function capture($reference_id, $transaction_id, $amount, array $invoice_amounts = null)
     {
@@ -346,16 +267,7 @@ class StripeAlipay extends NonmerchantGateway
 
     /**
      * Void a payment or authorization.
-     *
-     * @param string $reference_id The reference ID for the previously submitted transaction
-     * @param string $transaction_id The transaction ID for the previously submitted transaction
-     * @param string $notes Notes about the void that may be sent to the client by the gateway
-     * @return array An array of transaction data including:
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard
-     *      message for this transaction status (optional)
+     * {@inheritdoc}
      */
     public function void($reference_id, $transaction_id, $notes = null)
     {
@@ -364,17 +276,7 @@ class StripeAlipay extends NonmerchantGateway
 
     /**
      * Refund a payment.
-     *
-     * @param string $reference_id The reference ID for the previously submitted transaction
-     * @param string $transaction_id The transaction ID for the previously submitted transaction
-     * @param float $amount The amount to refund this card
-     * @param string $notes Notes about the refund that may be sent to the client by the gateway
-     * @return array An array of transaction data including:
-     *  - status The status of the transaction (approved, declined, void, pending, reconciled, refunded, returned)
-     *  - reference_id The reference ID for gateway-only use with this transaction (optional)
-     *  - transaction_id The ID returned by the remote gateway to identify this transaction
-     *  - message The message to be displayed in the interface in addition to the standard
-     *      message for this transaction status (optional)
+     * {@inheritdoc}
      */
     public function refund($reference_id, $transaction_id, $amount, $notes = null)
     {
@@ -385,6 +287,7 @@ class StripeAlipay extends NonmerchantGateway
             $payment_intent = $this->stripe->paymentIntents->retrieve($transaction_id, []);
             $payment_amount = $payment_intent['amount'];
             $payment_currency = $payment_intent['currency'];
+            $metadata = $payment_intent["metadata"];
 
             if ($payment_intent["status"] != "succeeded" & $payment_intent["amount_received"] === 0) {
                 $this->Input->setErrors([
@@ -395,14 +298,26 @@ class StripeAlipay extends NonmerchantGateway
                 return [];
             }
 
-            if ($this->meta['fee_choice'] == 'refund_fee' && ($this->meta['fee_fix'] || $this->meta['fee_percent'])) {
-                $amount = $this->calculateAmount($amount, $this->meta['fee_fix'], $this->meta['fee_percent'], false);
+            $amount = $payment_intent['amount'];
+            $acture_amount = (float) $metadata['acture_amount'];
+            $fee = $metadata['fee'];
+            $amount_details = $this->calculateAmount($acture_amount, strtoupper($payment_intent["currency"]), $situ = 'refund');
+
+            if ($fee != $amount_details['fee']) {
+
+                $this->log($this->base_url, "Stripe Alipay Gateway  - Result: " . json_encode($amount_details) . json_encode($metadata), 'output');
+
+                $this->Input->setErrors([
+                    "gateway_error" => [
+                        'message' => Language::_('StripeAlipay.!error.payment_error_with_message', true) . "Amount mismatch ,please refund via Stripe dashboard. Related payment",
+                    ],
+                ]);
+                return [];
             }
-            $amount = $this->formatAmount($amount, $this->currency);
 
             $refund_request = $this->stripe->refunds->create([
                 'payment_intent' => $transaction_id,
-                'amount' => $amount,
+                'amount' => $amount_details['stripe_amount'],
             ]);
         } catch (\Stripe\Exception\InvalidRequestException  | \Stripe\Exception\RateLimitException  | \Stripe\Exception\AuthenticationException  | \Stripe\Exception\ApiConnectionException  | \Stripe\Exception\ApiErrorException $e) {
             $this->log($this->base_url, "Stripe Alipay Gateway  - Refund Error: " . $e, 'output');
@@ -447,8 +362,8 @@ class StripeAlipay extends NonmerchantGateway
 
         $refund_result = [
             'status' => 'refunded',
-            'reference_id' => $refund_request['balance_transaction'],
-            'transaction_id' => $refund_request['id'],
+            'reference_id' => 'Refund: ' . $refund_request['id'] . '| Balance: ' . $refund_request['balance_transaction'],
+            'transaction_id' => $transaction_id,
             'message' => null,
         ];
 
@@ -494,7 +409,7 @@ class StripeAlipay extends NonmerchantGateway
         } catch (Exception $e) {
             $this->Input->setErrors([
                 'gateway_error' => [
-                    'message' => $e, // Test API call
+                    'message' => $e,
                 ],
             ]);
             $success = false;
@@ -558,25 +473,33 @@ class StripeAlipay extends NonmerchantGateway
                 break;
         }
 
-        $amount = $payment_intent["amount"];
+        $amount = $payment_intent['amount'];
+        $acture_amount = (float) $metadata['acture_amount'];
+        $fee = $metadata['fee'];
+        $amount_details = $this->calculateAmount($acture_amount, strtoupper($payment_intent["currency"]), $situ = 'payment');
 
-        $amount = $this->formatAmount($amount, strtoupper($payment_intent["currency"]), 'from');
+        if ($amount != $amount_details['stripe_amount']) {
+            $this->log($this->base_url, "Stripe Alipay Gateway  - Result: " . json_encode($amount_details), 'output', ($status == "approved"));
 
-        if ($this->meta['fee_choice'] == 'payment_fee' && ($this->meta['fee_fix'] || $this->meta['fee_percent'])) {
-            $amount = $this->calculateAmount($amount, $this->meta['fee_fix'], $this->meta['fee_percent'], false);
+            $this->Input->setErrors([
+                "gateway_error" => [
+                    'message' => Language::_('StripeAlipay.!error.payment_error_with_message', true) . "Amount mismatch",
+                ],
+            ]);
+            return [];
         }
 
         $payment_result = [
             'client_id' => $metadata['client_id'],
-            'amount' => $amount,
+            'amount' => $acture_amount,
             'currency' => strtoupper($payment_intent["currency"]),
             'status' => $status,
-            'reference_id' => $payment_intent["client_secret"],
+            'reference_id' => $payment_intent["client_secret"] . '|fee' . $fee,
             'transaction_id' => $payment_intent["id"],
             'invoices' => $this->unserializeInvoices($metadata['invoices']),
             'parent_transaction_id' => null,
         ];
-        $this->log($this->base_url, "Stripe Alipay Gateway  - Result: " . json_encode($payment_result), 'output', ($status = "approved"));
+        $this->log($this->base_url, "Stripe Alipay Gateway  - Result: " . json_encode($payment_result), 'output', ($status == "approved"));
         return $payment_result;
     }
 
@@ -606,44 +529,44 @@ class StripeAlipay extends NonmerchantGateway
      * Caculate the amount with progress fee
      */
 
-    private function calculateAmount($amount, $fee_fix = 0, $fee_percent = 0, $addon = true)
+    private function calculateAmount($amount, $currency, $situ = 'payment')
     {
 
-        if ($addon == true) {
-            $fee = ($amount * $fee_percent / 100) + $fee_fix;
-            $amount = $amount + $fee;
-        } else {
-            $fee = ($amount * $fee_percent / 100) + $fee_fix;
-            $amount = $amount - $fee;
-        }
-        return $amount;
-    }
-
-    /**
-     * Convert amount from decimal value to integer representation of cents
-     *
-     * @param float $amount
-     * @param string $currency
-     * @param string $direction
-     * @return int The amount in cents
-     */
-    private function formatAmount($amount, $currency, $direction = 'to')
-    {
         $non_decimal_currencies = [
             'BIF', 'CLP', 'DJF', 'GNF', 'JPY',
             'KMF', 'KRW', 'MGA', 'PYG', 'RWF', 'VUV', 'XAF', 'XOF', 'XPF',
         ];
 
-        if (is_numeric($amount) && !in_array($currency, $non_decimal_currencies)) {
-            if ($direction === 'to') {
-                $amount *= 100;
-            } else {
-                $amount /= 100;
-                return round($amount, 2);
-            }
+        $acture_amount = $amount;
+        $fee = 0;
+        $fee_fix = isset($this->meta['fee_fix']) ? (float) $this->meta['fee_fix'] : 0;
+
+        $fee_percent = isset($this->meta['fee_percent']) ? (float) $this->meta['fee_percent'] : 0;
+
+        $fee = ($amount * $fee_percent / 100) + $fee_fix;
+        $stripe_amount = 0;
+
+        if ($situ === 'payment' & $this->meta['fee_choice'] == 'payment_fee') {
+            $stripe_amount = $acture_amount + $fee;
+        } else if ($situ === 'refund' & $this->meta['fee_choice'] == 'refund_fee') {
+            $stripe_amount = $acture_amount - $fee;
+        } else {
+            $stripe_amount = $acture_amount;
         }
 
-        return (int) round($amount);
+        if (is_numeric($stripe_amount) && !in_array($currency, $non_decimal_currencies)) {
+
+            $stripe_amount = round($stripe_amount * 100);
+        } else {
+            $stripe_amount = round($stripe_amount);
+        }
+
+        return [
+            'acture_amount' => $acture_amount,
+            'amount' => $amount,
+            'fee' => $fee,
+            'stripe_amount' => $stripe_amount,
+        ];
     }
 
     /**

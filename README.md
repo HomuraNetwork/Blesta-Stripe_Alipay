@@ -58,11 +58,22 @@ For more information, please visit [Stripe - Alipay: An in-depth guide](https://
 
   - [x] Provide support for fixed fees 
 
-  - [ ] Incorporate percentage-based fees 
+  - [x] Incorporate percentage-based fees 
 
 - [ ] Implement currency conversion feature
 
 - [ ] Improve code quality and logic
+
+> 
+>[!TIP]
+>If you intend to have your customer cover the transaction fee, ensure that it is clearly and accurately stated. You can modify this in `language/en_us/stripe_alipay.php` and also change the name of this plugin if necessary.
+>
+>如果你计划让你的客户支付交易费用，一定要清楚准确地说明。你可以修改`language/en_us/stripe_alipay.php`并在必要时更改此插件的名称。
+
+>[!WARNING]
+>If you add a percentage-based payment fee when the user makes a payment, there may be an error with amount in the refund function. This plugin calculates based on the amount that needs to be paid, whereas Stripe calculates based on the actual amount paid.
+>
+>如果你在用户付款时添加了基于百分比的支付费用，那么在退款功能中可能会出现金额错误。这个插件是根据需要支付的金额进行计算的，而Stripe则是根据实际支付的金额进行计算。
 
 ## Requirements:
 - [Blesta](https://www.blesta.com/)

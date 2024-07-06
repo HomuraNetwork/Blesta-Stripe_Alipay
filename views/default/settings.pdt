@@ -35,11 +35,10 @@
 		</li>
         <li>
         <?php
-         // TODO: Find a way to ensure that the percentage fee does not cause a discrepancy between payment and receipt amounts.
-            $this->Form->label($this->_('StripeAlipay.fee_percentage', true));
-            $this->Form->fieldText('fee_percent', (isset($meta['fee_percentage']) ? $meta['fee_percentage'] : null), ['disabled' => 'true;']);
+            $this->Form->label($this->_('StripeAlipay.fee_percent', true));
+            $this->Form->fieldText('fee_percent', (isset($meta['fee_percent']) ? $meta['fee_percent'] : null));
             ?>
-			<span class="tooltip"><?php $this->_('AppController.tooltip.text');?><div><?php $this->_('StripeAlipay.tooltip_fee_percentage');?></div></span>
+			<span class="tooltip"><?php $this->_('AppController.tooltip.text');?><div><?php $this->_('StripeAlipay.tooltip_fee_percent');?></div></span>
 		</li>
         <li>
         <?php
